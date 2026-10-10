@@ -1,61 +1,119 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Big Bad Studio AR</title>
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1">
+  <title>Big Bad Studio AR Test</title>
 
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
-    .notice {
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #status {
       position: fixed;
-      top: 15px;
-      left: 0;
-      width: 100%;
-      text-align: center;
+      top: 20px;
+      left: 5%;
+      width: 90%;
+      padding: 12px 0;
+      background: rgba(0,0,0,0.75);
       color: white;
-      font: bold 16px Arial;
-      z-index: 999;
-      pointer-events: none;
-      text-shadow: 0 2px 5px black;
+      text-align: center;
+      border-radius: 10px;
+      z-index: 9999;
+      font-size: 14px;
     }
   </style>
 </head>
 
 <body>
-  <div class="notice">
-    BIG BAD STUDIO AR
-  </div>
+  <div id="status">Starting Big Bad Studio AR...</div>
 
   <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind;"
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;"
+    embedded
     color-space="sRGB"
     renderer="colorManagement: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
-    <a-camera position="0 0 0"
+    <a-camera
+      position="0 0 0"
       look-controls="enabled: false">
     </a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0">
+    <a-entity
+      id="target"
+      mindar-image-target="targetIndex: 0">
 
-      <!-- Floating 3D cube -->
       <a-box
         position="0 0 0.3"
         rotation="25 35 15"
         width="0.45"
         height="0.45"
         depth="0.45"
-        color="#FF3B30"
-        material="metalness: 0.2; roughness: 0.4">
+        color="red">
       </a-box>
 
     </a-entity>
   </a-scene>
+
+  <script>
+    const status = document.querySelector("#status");
+    const scene = document.querySelector("a-scene");
+    const target = document.querySelector("#target");
+
+    function updateStatus(message) {
+      status.textContent = message;
+    }
+
+    window.addEventListener("error", (event) => {
+      updateStatus("Error: " + event.message);
+    });
+
+    window.addEventListener(
+      "unhandledrejection",
+      (event) => {
+        updateStatus(
+          "Error: " +
+          (event.reason?.message || event.reason)
+        );
+      }
+    );
+
+    scene.addEventListener("loaded", async () => {
+      updateStatus("Starting camera and AR tracking...");
+
+      try {
+        await scene.systems["mindar-image-system"].start();
+        updateStatus("AR ready. Point at your artwork.");
+      } catch (error) {
+        updateStatus("AR failed: " + error.message);
+      }
+    });
+
+    scene.addEventListener("arReady", () => {
+      updateStatus("AR ready. Point at your artwork.");
+    });
+
+    scene.addEventListener("arError", () => {
+      updateStatus("AR initialization error.");
+    });
+
+    target.addEventListener("targetFound", () => {
+      updateStatus("Artwork detected!");
+    });
+
+    target.addEventListener("targetLost", () => {
+      updateStatus("Artwork lost. Point camera at print.");
+    });
+  </script>
 </body>
 </html>
